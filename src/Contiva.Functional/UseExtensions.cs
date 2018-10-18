@@ -14,5 +14,11 @@ namespace LanguageExt
             var res = self.BindAsync(f => use(f, f1 => map(self)));
             return res;
         }
+
+        public static Either<L, R2> Use<L, R1, R2>(this Either<L, R1> self, Func<Either<L, R1>, Either<L, R2>> map) where R1 : IDisposable
+        {
+            var res = self.Bind(f => use(f, f1 => map(self)));
+            return res;
+        }
     }
 }
