@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
-namespace Contiva.Functional
+namespace Dbosoft.Functional
 {
     public static class Agent
     {
