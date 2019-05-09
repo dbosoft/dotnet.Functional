@@ -1,9 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.1.0</Version>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/dbosoft/Dbosoft.Functional</PackageProjectUrl>
+    <Copyright>dbosoft GmbH</Copyright>
+    <Authors>Frank Wagner</Authors>
+    <Company>dbosoft GmbH</Company>
+    <Product>Dbosoft.Functional</Product>
+    <RepositoryUrl>https://github.com/dbosoft/Dbosoft.Functional</RepositoryUrl>
+    <PackageId>Dbosoft.Functional</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
