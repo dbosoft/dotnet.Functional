@@ -16,8 +16,7 @@ steps:
   inputs:
     command: build
     projects: '**/*.csproj'
-    arguments: '--configuration Release'
-- script: dotnet publish --output $(Build.ArtifactStagingDirectory)
+    arguments: '--configuration Release --output $(build.artifactstagingdirectory)'
 - task: PublishBuildArtifacts@1
   inputs:
     ArtifactName: drop
