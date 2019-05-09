@@ -16,4 +16,7 @@ steps:
   inputs:
     command: build
     projects: '**/*.csproj'
-    arguments: '--configuration Release' # Update this to match your need
+    arguments: '--configuration Release'
+- task: PublishBuildArtifacts@1
+  inputs:
+    ArtifactName: drop
