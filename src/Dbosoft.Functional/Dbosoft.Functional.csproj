@@ -12,6 +12,7 @@
     <Product>Dbosoft.Functional</Product>
     <RepositoryUrl>https://github.com/dbosoft/Dbosoft.Functional</RepositoryUrl>
     <PackageId>Dbosoft.Functional</PackageId>
+    <Description>Functional helper library based on language.ext.</Description>
   </PropertyGroup>
 
   <ItemGroup>
