@@ -38,12 +38,12 @@ namespace Dbosoft.Functional
 
     public interface IAgent<in TMsg>
     {
-        void Tell(TMsg message, CancellationToken cancellationToken);
+        void Tell(TMsg message);
     }
 
     public interface IAgent<in TMsg, TReply>
     {
-        Task<TReply> Tell(TMsg message, CancellationToken cancellationToken);
+        Task<TReply> Tell(TMsg message);
     }
 
     class StatelessAgent<TMsg> : IAgent<TMsg>
@@ -58,9 +58,10 @@ namespace Dbosoft.Functional
         public StatelessAgent(Func<TMsg, Task> process, CancellationToken cancellationToken)
         {
             _actionBlock = new ActionBlock<TMsg>(process, new ExecutionDataflowBlockOptions { CancellationToken = cancellationToken });
+
         }
 
-        public void Tell(TMsg message,CancellationToken cancellationToken = default) => _actionBlock.Post(message);
+        public void Tell(TMsg message) => _actionBlock.Post(message);
     }
 
     class StatefulAgent<TState, TMsg> : IAgent<TMsg>
@@ -88,15 +89,17 @@ namespace Dbosoft.Functional
                new ExecutionDataflowBlockOptions{CancellationToken = cancellationToken });
         }
 
-        public void Tell(TMsg message, CancellationToken cancellationToken = default) => _actionBlock.Post(message);
+        public void Tell(TMsg message) => _actionBlock.Post(message);
     }
 
     class TwoWayAgent<TState, TMsg, TReply> : IAgent<TMsg, TReply>
     {
+        private readonly CancellationToken _cancellationToken;
         private readonly ActionBlock<(TMsg, TaskCompletionSource<TReply>)> _actionBlock;
 
         public TwoWayAgent(TState initialState, Func<TState, TMsg, (TState, TReply)> process, CancellationToken cancellationToken)
         {
+            _cancellationToken = cancellationToken;
             var state = initialState;
 
             _actionBlock = new ActionBlock<(TMsg, TaskCompletionSource<TReply>)>(
@@ -112,10 +115,12 @@ namespace Dbosoft.Functional
         public TwoWayAgent(TState initialState, Func<TState, TMsg, Task<(TState, TReply)>> process, CancellationToken cancellationToken)
         {
             var state = initialState;
+            _cancellationToken = cancellationToken;
 
             _actionBlock = new ActionBlock<(TMsg, TaskCompletionSource<TReply>)>(
                async t =>
                {
+                   
                    await process(state, t.Item1)
                         .ContinueWith(task =>
                         {
@@ -131,13 +136,13 @@ namespace Dbosoft.Functional
                }, new ExecutionDataflowBlockOptions { CancellationToken = cancellationToken });
         }
 
-        public Task<TReply> Tell(TMsg message, CancellationToken cancellationToken = default)
+        public Task<TReply> Tell(TMsg message)
         {
             var tcs = new TaskCompletionSource<TReply>();  
              _actionBlock.Post((message, tcs));
-
+             
             // this will help to relax the task scheduler, for some reason the task may block if directly returned
-            tcs.Task.Wait(cancellationToken);
+            tcs.Task.Wait(_cancellationToken);
             return tcs.Task;
         }
     }
