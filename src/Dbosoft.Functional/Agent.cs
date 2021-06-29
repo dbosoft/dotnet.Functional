@@ -125,24 +125,22 @@ namespace Dbosoft.Functional
                         .ContinueWith(task =>
                         {
                             if (task.Status == TaskStatus.Faulted)
-                                t.Item2.SetException(task.Exception);
+                                t.Item2.SetException(task.Exception ?? new Exception("Task failed"));
                             else
                             {
                                 state = task.Result.Item1;
                                 t.Item2.SetResult(task.Result.Item2);
                             }
-                        })
+                        }, TaskContinuationOptions.RunContinuationsAsynchronously)
                        .ConfigureAwait(false);
                }, new ExecutionDataflowBlockOptions { CancellationToken = cancellationToken });
         }
 
         public Task<TReply> Tell(TMsg message)
         {
-            var tcs = new TaskCompletionSource<TReply>();  
+            var tcs = new TaskCompletionSource<TReply>(TaskContinuationOptions.RunContinuationsAsynchronously);  
              _actionBlock.Post((message, tcs));
              
-            // this will help to relax the task scheduler, for some reason the task may block if directly returned
-            tcs.Task.Wait(_cancellationToken);
             return tcs.Task;
         }
     }
