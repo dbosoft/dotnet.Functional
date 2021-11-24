@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
-using LanguageExt;
 using LanguageExt.Common;
 
-namespace Dbosoft.Functional
+// ReSharper disable InconsistentNaming
+
+// ReSharper disable once CheckNamespace
+namespace LanguageExt
 {
     public static class EitherExtensions
     {
