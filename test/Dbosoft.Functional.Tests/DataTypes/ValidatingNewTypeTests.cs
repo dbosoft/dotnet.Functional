@@ -1,9 +1,9 @@
-﻿using Dbosoft.Functional.Validations;
-using LanguageExt.ClassInstances;
+﻿using LanguageExt.ClassInstances;
 using LanguageExt.Common;
 using LanguageExt;
 using static FluentAssertions.FluentActions;
 using static LanguageExt.Prelude;
+using Dbosoft.Functional.DataTypes;
 
 public class ValidatingNewTypeTests
 {
