@@ -24,12 +24,13 @@ public static class ComplexValidations
         Func<string, Validation<Error, TResult>> validate,
         string path = "", 
         bool required = false) =>
-        Optional(getProperty.Compile().Invoke(toValidate))
-            .Filter(notEmpty)
-            .Match(
-                Some: v => validate(v).Map(_ => unit)
-                    .MapFail(e => new ValidationIssue(JoinPath(path, getProperty), e.Message)),
-                None: Success<ValidationIssue, Unit>(unit));
+        ValidateProperty(
+            Optional(getProperty.Compile().Invoke(toValidate)).Filter(notEmpty),
+            getProperty,
+            v => validate(v).Map(_ => unit)
+                .MapFail(e => new ValidationIssue(JoinPath(path, getProperty), e.Message)),
+            path,
+            required);
 
     public static Validation<ValidationIssue, Unit> ValidateProperty<T, TProperty, TResult>(
         T toValidate,
@@ -37,11 +38,13 @@ public static class ComplexValidations
         Func<TProperty, Validation<Error, TResult>> validate,
         string path = "",
         bool required = false) =>
-        Optional(getProperty.Compile().Invoke(toValidate))
-            .Match(
-                Some: v => validate(v).Map(_ => unit)
-                    .MapFail(e => new ValidationIssue(JoinPath(path, getProperty), e.Message)),
-                None: Success<ValidationIssue, Unit>(unit));
+        ValidateProperty(
+            Optional(getProperty.Compile().Invoke(toValidate)),
+            getProperty,
+            v => validate(v).Map(_ => unit)
+                .MapFail(e => new ValidationIssue(JoinPath(path, getProperty), e.Message)),
+            path,
+            required);
 
     public static Validation<ValidationIssue, Unit> ValidateProperty<T, TProperty>(
         T toValidate,
@@ -49,21 +52,25 @@ public static class ComplexValidations
         Func<TProperty, string, Validation<ValidationIssue, Unit>> validate,
         string path = "",
         bool required = false) =>
-        Optional(getProperty.Compile().Invoke(toValidate))
-            .Match(
-                Some: v => validate(v, JoinPath(path, getProperty)),
-                None: Success<ValidationIssue, Unit>(unit));
+        ValidateProperty(
+            Optional(getProperty.Compile().Invoke(toValidate)),
+            getProperty,
+            v => validate(v, JoinPath(path, getProperty)),
+            path,
+            required);
 
     private static Validation<ValidationIssue, Unit> ValidateProperty<T, TProperty>(
         Option<TProperty> value,
+        Expression<Func<T, TProperty?>> getProperty,
         Func<TProperty, Validation<ValidationIssue, Unit>> validate,
-        string propertyName,
         string path,
         bool required) =>
         value.Match(
             Some: validate,
             None: () => required
-                ? Fail<ValidationIssue, Unit>(new ValidationIssue(path, $"The property {propertyName} is required."))
+                ? Fail<ValidationIssue, Unit>(
+                    new ValidationIssue(JoinPath(path, getProperty),
+                        $"The {GetPropertyName(getProperty)} is required."))
                 : Success<ValidationIssue, Unit>(unit));
 
     public static Validation<ValidationIssue, Unit> ValidateList<T, TProperty>(
@@ -73,21 +80,46 @@ public static class ComplexValidations
         string path = "",
         Option<int> minCount = default,
         Option<int> maxCount = default) =>
-        getList.Compile().Invoke(toValidate).ToSeq()
-            .Map((index, listItem) =>
+        ValidateList(
+            getList.Compile().Invoke(toValidate).ToSeq(),
+            getList,
+            validate,
+            path,
+            minCount,
+            maxCount);
+
+    private static Validation<ValidationIssue, Unit> ValidateList<T, TProperty>(
+        Seq<TProperty?> list,
+        Expression<Func<T, IEnumerable<TProperty?>?>> getList,
+        Func<TProperty, string, Validation<ValidationIssue, Unit>> validate,
+        string path = "",
+        Option<int> minCount = default,
+        Option<int> maxCount = default) =>
+        match(minCount.Filter(c => c > list.Count),
+            Some: c => Fail<ValidationIssue, Unit>(
+                new ValidationIssue(JoinPath(path, getList), $"The list must have {c} or more entries.")),
+            None: () => Success<ValidationIssue, Unit>(unit))
+        | match(maxCount.Filter(c => c < list.Count),
+            Some: c => Fail<ValidationIssue, Unit>(
+                new ValidationIssue(JoinPath(path, getList), $"The list must have {c} or fewer entries.")),
+            None: () => Success<ValidationIssue, Unit>(unit))
+        | list.Map((index, listItem) =>
                 from li in Optional(listItem).ToValidation(
                     new ValidationIssue($"{JoinPath(path, getList)}[{index}]", "The entry must not be null."))
                 from _ in validate(listItem, $"{JoinPath(path, getList)}[{index}]")
-            select unit)
+                select unit)
             .Fold(Success<ValidationIssue, Unit>(unit), (acc, listItem) => acc | listItem);
 
-    private static string JoinPath<T, TProperty>(string path, Expression<Func<T, TProperty?>> getProperty)
-    {
-        if (!(getProperty.Body is MemberExpression memberExpression))
-            throw new ArgumentException("The expression must access and return a class member");
+    private static string JoinPath<T, TProperty>(string path, Expression<Func<T, TProperty?>> getProperty) =>
+        notEmpty(path) ? $"{path}.{GetPropertyName(getProperty)}" : GetPropertyName(getProperty);
 
-        return notEmpty(path) ? $"{path}.{memberExpression.Member.Name}" : memberExpression.Member.Name;
-    }
+    private static string GetPropertyName<T, TProperty>(Expression<Func<T, TProperty?>> getProperty) =>
+        getProperty.Body switch
+        {
+            MemberExpression memberExpression => memberExpression.Member.Name,
+            _ => throw new ArgumentException("The expression must access and return a class member.",
+                nameof(getProperty))
+        };
 }
 
 #nullable restore

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Dbosoft.Functional.Validations;
@@ -13,6 +14,27 @@ namespace Dbosoft.Functional.Tests.Validations;
 
 public class ComplexValidationsTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void ValidateProperty_RequiredAndStringIsEmpty_ReturnsFail(string? value)
+    {
+        var result = ValidateProperty(
+            new TestType() { StringValue = value },
+            t => t.StringValue,
+            _ => Success<Error, string>("test"),
+            "Some.Path",
+            required: true);
+
+        result.Should().BeFail().Which.Should().SatisfyRespectively(
+            issue =>
+            {
+                issue.Member.Should().Be("Some.Path.StringValue");
+                issue.Message.Should().Be("The StringValue is required.");
+            });
+    }
+
     public class TravelGroupExample
     {
         [Fact]
@@ -21,7 +43,7 @@ public class ComplexValidationsTests
             var travelGroup = new TravelGroup
             {
                 Name = "My Travel Group",
-                Description = "This is a description",
+                Description = "The most important\ntravel group",
                 Contact = new Contact
                 {
                     Name = "John Doe",
@@ -67,6 +89,7 @@ public class ComplexValidationsTests
             var travelGroup = new TravelGroup
             {
                 Name = "My\nTravel\nGroup",
+                Description = "The most important | travel group",
                 Contact = new Contact
                 {
                     Name = "John\nDoe",
@@ -80,19 +103,21 @@ public class ComplexValidationsTests
 
             var result = TravelGroupValidations.ValidateTravelGroup(travelGroup);
 
-
-            var errors = result.Should().BeFail().Subject.ToList();
-
             result.Should().BeFail().Which.Should().SatisfyRespectively(
                 issue =>
                 {
                     issue.Member.Should().Be("Name");
-                    issue.Message.Should().Be("The description can only contain letters, digits and spaces.");
+                    issue.Message.Should().Be("The name can only contain letters, digits and spaces.");
+                },
+                issue =>
+                {
+                    issue.Member.Should().Be("Description");
+                    issue.Message.Should().Be("The description can only contain letters, digits and white space.");
                 },
                 issue =>
                 {
                     issue.Member.Should().Be("Contact.Name");
-                    issue.Message.Should().Be("The description can only contain letters, digits and white space.");
+                    issue.Message.Should().Be("The name can only contain letters, digits and spaces.");
                 },
                 issue =>
                 {
@@ -102,12 +127,12 @@ public class ComplexValidationsTests
                 issue =>
                 {
                     issue.Member.Should().Be("Participants");
-                    issue.Message.Should().Be("The list must contain at least 2 entries.");
+                    issue.Message.Should().Be("The list must have 2 or more entries.");
                 },
                 issue =>
                 {
                     issue.Member.Should().Be("Participants[0].Name");
-                    issue.Message.Should().Be("The description can only contain letters, digits and spaces.");
+                    issue.Message.Should().Be("The name can only contain letters, digits and spaces.");
                 },
                 issue =>
                 {
@@ -139,7 +164,7 @@ public static class TravelGroupValidations
 
     public static Validation<Error, string> ValidateName(string name) =>
         from _ in guard(name.ToSeq().All(c => char.IsLetterOrDigit(c) || c == ' '),
-                Error.New("The description can only contain letters, digits and spaces."))
+                Error.New("The name can only contain letters, digits and spaces."))
             .ToValidation()
         select name;
 
@@ -160,6 +185,17 @@ public static class TravelGroupValidations
                 Error.New("The phone number can only contain digits or +."))
             .ToValidation()
         select phone;
+}
+
+public class TestType
+{
+    public string? StringValue { get; set; }
+
+    public int IntValue { get; set; }
+
+    public int? NullableIntValue { get; set; }
+
+    public string[]? StringArray { get; set; }
 }
 
 public class TravelGroup
