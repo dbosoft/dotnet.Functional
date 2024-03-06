@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Dbosoft.Functional.Validations;
 using LanguageExt;
 using LanguageExt.Common;
+using Moq;
 using static Dbosoft.Functional.Validations.ComplexValidations;
 using static LanguageExt.Prelude;
 
@@ -14,6 +15,57 @@ namespace Dbosoft.Functional.Tests.Validations;
 
 public class ComplexValidationsTests
 {
+    [Fact]
+    public void ValidateProperty_NotRequiredAndNullableIntIsNull_ReturnsSuccess()
+    {
+        var validateMock = new Mock<Func<int, Validation<Error, int>>>();
+        var result = ValidateProperty(
+            new TestType() { NullableIntValue = null },
+            t => t.NullableIntValue,
+            validateMock.Object,
+            "Some.Path",
+            required: false);
+
+        result.Should().BeSuccess();
+        validateMock.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void ValidateProperty_NotRequiredAndStringIsEmpty_ReturnsSuccess(string? value)
+    {
+        var validateMock = new Mock<Func<string, Validation<Error, string>>>();
+        var result = ValidateProperty(
+            new TestType() { StringValue = value },
+            t => t.StringValue,
+            validateMock.Object,
+            "Some.Path",
+            required: false);
+
+        result.Should().BeSuccess();
+        validateMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public void ValidateProperty_RequiredAndNullableIntIsNull_ReturnsFail()
+    {
+        var result = ValidateProperty(
+            new TestType() { NullableIntValue = null },
+            t => t.NullableIntValue,
+            (int _) => Success<Error, int>(1),
+            "Some.Path",
+            required: true);
+
+        result.Should().BeFail().Which.Should().SatisfyRespectively(
+            issue =>
+            {
+                issue.Member.Should().Be("Some.Path.NullableIntValue");
+                issue.Message.Should().Be("The NullableIntValue is required.");
+            });
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

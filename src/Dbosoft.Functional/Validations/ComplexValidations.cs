@@ -26,11 +26,28 @@ public static class ComplexValidations
         bool required = false) =>
         ValidateProperty(
             Optional(getProperty.Compile().Invoke(toValidate)).Filter(notEmpty),
-            getProperty,
             v => validate(v).Map(_ => unit)
                 .MapFail(e => new ValidationIssue(JoinPath(path, getProperty), e.Message)),
             path,
+            GetPropertyName(getProperty),
             required);
+
+    public static Validation<ValidationIssue, Unit> ValidateProperty<T, TProperty, TResult>(
+        T toValidate,
+        Expression<Func<T, TProperty?>> getProperty,
+        Func<TProperty, Validation<Error, TResult>> validate,
+        string path = "",
+        bool required = false) where TProperty :struct
+    {
+        var value = getProperty.Compile().Invoke(toValidate);
+        return ValidateProperty(
+            value.HasValue ? Some(value.Value) : None,
+            v => validate(v).Map(_ => unit)
+                .MapFail(e => new ValidationIssue(JoinPath(path, getProperty), e.Message)),
+            path,
+            GetPropertyName(getProperty),
+            required);
+    }
 
     public static Validation<ValidationIssue, Unit> ValidateProperty<T, TProperty, TResult>(
         T toValidate,
@@ -40,10 +57,10 @@ public static class ComplexValidations
         bool required = false) =>
         ValidateProperty(
             Optional(getProperty.Compile().Invoke(toValidate)),
-            getProperty,
             v => validate(v).Map(_ => unit)
                 .MapFail(e => new ValidationIssue(JoinPath(path, getProperty), e.Message)),
             path,
+            GetPropertyName(getProperty),
             required);
 
     public static Validation<ValidationIssue, Unit> ValidateProperty<T, TProperty>(
@@ -54,23 +71,23 @@ public static class ComplexValidations
         bool required = false) =>
         ValidateProperty(
             Optional(getProperty.Compile().Invoke(toValidate)),
-            getProperty,
             v => validate(v, JoinPath(path, getProperty)),
             path,
+            GetPropertyName(getProperty),
             required);
 
-    private static Validation<ValidationIssue, Unit> ValidateProperty<T, TProperty>(
+    private static Validation<ValidationIssue, Unit> ValidateProperty<TProperty>(
         Option<TProperty> value,
-        Expression<Func<T, TProperty?>> getProperty,
         Func<TProperty, Validation<ValidationIssue, Unit>> validate,
         string path,
+        string propertyName,
         bool required) =>
         value.Match(
             Some: validate,
             None: () => required
                 ? Fail<ValidationIssue, Unit>(
-                    new ValidationIssue(JoinPath(path, getProperty),
-                        $"The {GetPropertyName(getProperty)} is required."))
+                    new ValidationIssue(JoinPath(path, propertyName),
+                        $"The {propertyName} is required."))
                 : Success<ValidationIssue, Unit>(unit));
 
     public static Validation<ValidationIssue, Unit> ValidateList<T, TProperty>(
@@ -112,6 +129,9 @@ public static class ComplexValidations
 
     private static string JoinPath<T, TProperty>(string path, Expression<Func<T, TProperty?>> getProperty) =>
         notEmpty(path) ? $"{path}.{GetPropertyName(getProperty)}" : GetPropertyName(getProperty);
+
+    private static string JoinPath(string path, string propertyName) =>
+        notEmpty(path) ? $"{path}.{propertyName}" : propertyName;
 
     private static string GetPropertyName<T, TProperty>(Expression<Func<T, TProperty?>> getProperty) =>
         getProperty.Body switch
