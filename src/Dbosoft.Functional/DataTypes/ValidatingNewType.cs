@@ -17,9 +17,7 @@ public abstract class ValidatingNewType<NEWTYPE, A, ORD> : NewType<NEWTYPE, A, T
     where NEWTYPE : ValidatingNewType<NEWTYPE, A, ORD>
     where ORD : struct, Ord<A>
 {
-    protected ValidatingNewType(A value) : base(value)
-    {
-    }
+    protected ValidatingNewType(A value) : base(value) { }
 
     public static Validation<Error, NEWTYPE> NewValidation(A value) =>
         NewTry(value).Match(
