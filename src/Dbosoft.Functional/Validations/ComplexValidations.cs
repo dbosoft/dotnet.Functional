@@ -123,7 +123,7 @@ public static class ComplexValidations
         | list.Map((index, listItem) =>
                 from li in Optional(listItem).ToValidation(
                     new ValidationIssue($"{JoinPath(path, getList)}[{index}]", "The entry must not be null."))
-                from _ in validate(listItem, $"{JoinPath(path, getList)}[{index}]")
+                from _ in validate(li, $"{JoinPath(path, getList)}[{index}]")
                 select unit)
             .Fold(Success<ValidationIssue, Unit>(unit), (acc, listItem) => acc | listItem);
 
