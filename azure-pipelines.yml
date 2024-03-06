@@ -10,13 +10,24 @@ pool:
   name: 'default'
 
 steps:
-- script: dotnet restore
+- task: DotNetCoreCLI@2
+  inputs:
+    command: restore
+
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
     command: build
     projects: '**/*.csproj'
     arguments: '--configuration Release --output $(build.artifactstagingdirectory)'
+
+- task: DotNetCoreCLI@2
+  displayName: dotnet test
+  inputs:
+    command: test
+    projects: '**/*Tests/*.csproj'
+    arguments: '--configuration Release --collect "Code coverage" --no-build'
+
 - task: PublishBuildArtifacts@1
   inputs:
     ArtifactName: drop
