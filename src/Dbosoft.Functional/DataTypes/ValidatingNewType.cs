@@ -24,9 +24,12 @@ public abstract class ValidatingNewType<NEWTYPE, A, ORD> : NewType<NEWTYPE, A, T
     public static Validation<Error, NEWTYPE> NewValidation(A value) =>
         NewTry(value).Match(
             Succ: Success<Error, NEWTYPE>,
-            Fail: ex => ex is ValidationException<NEWTYPE> vex
-                ? Fail<Error, NEWTYPE>(vex.Errors)
-                : Fail<Error, NEWTYPE>(Error.New(ex)));
+            Fail: ex => ex switch
+            {
+                ValidationException<NEWTYPE> vex => Fail<Error, NEWTYPE>(vex.Errors),
+                ArgumentNullException _ => Fail<Error, NEWTYPE>(Error.New("The value cannot be null.")),
+                _ => Fail<Error, NEWTYPE>(Error.New(ex))
+            });
 
     public static Either<Error, NEWTYPE> NewEither(A value) =>
         NewValidation(value).ToEither().MapLeft(

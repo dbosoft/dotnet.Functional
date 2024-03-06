@@ -26,6 +26,15 @@ public class ValidatingNewTypeTests
         }
     }
 
+    public class TestTypeWithValidationSuccess
+        : ValidatingNewType<TestTypeWithValidationSuccess, string, OrdStringOrdinalIgnoreCase>
+    {
+        public TestTypeWithValidationSuccess(string value) : base(value)
+        {
+            ValidOrThrow(Success<Error, Unit>(unit));
+        }
+    }
+
     [Fact]
     public void New_WithArgumentException_ThrowsArgumentException()
     {
@@ -73,6 +82,20 @@ public class ValidatingNewTypeTests
     }
 
     [Fact]
+    public void NewEither_WithNull_ReturnsError()
+    {
+        var result = TestTypeWithValidationSuccess.NewEither(null!);
+
+        var error = result.Should().BeLeft().Subject;
+        error.Message.Should().Be("The value is not a valid TestTypeWithValidationSuccess.");
+        
+        var innerError = error.Inner.Should().BeSome().Subject;
+        innerError.Message.Should().Be("The value cannot be null.");
+        innerError.IsExceptional.Should().BeFalse();
+        innerError.Exception.Should().BeNone();
+    }
+
+    [Fact]
     public void NewValidation_ArgumentException_ReturnsErrorWithException()
     {
         var result = TestTypeWithArgumentException.NewValidation("test");
@@ -94,6 +117,20 @@ public class ValidatingNewTypeTests
 
         var errors = result.Should().BeFail().Subject;
         ShouldContainValidationErrors(errors);
+    }
+
+    [Fact]
+    public void NewValidation_WithNull_ReturnsError()
+    {
+        var result = TestTypeWithValidationSuccess.NewValidation(null!);
+
+        result.Should().BeFail().Which.Should().SatisfyRespectively(
+            error =>
+            {
+                error.Message.Should().Be("The value cannot be null.");
+                error.IsExceptional.Should().BeFalse();
+                error.Exception.Should().BeNone();
+            });
     }
 
     private static void ShouldContainValidationErrors(Seq<Error> errors)
