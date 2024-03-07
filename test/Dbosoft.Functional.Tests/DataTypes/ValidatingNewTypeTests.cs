@@ -5,6 +5,8 @@ using static FluentAssertions.FluentActions;
 using static LanguageExt.Prelude;
 using Dbosoft.Functional.DataTypes;
 
+namespace Dbosoft.Functional.Tests.DataTypes;
+
 public class ValidatingNewTypeTests
 {
     public class TestTypeWithArgumentException
