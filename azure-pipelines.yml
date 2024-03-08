@@ -9,14 +9,34 @@ trigger:
 pool:
   name: 'default'
 
+variables:
+  buildConfiguration: 'Release'
+
 steps:
-- script: dotnet restore
+- task: DotNetCoreCLI@2
+  inputs:
+    command: restore
+
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
     command: build
     projects: '**/*.csproj'
-    arguments: '--configuration Release --output $(build.artifactstagingdirectory)'
+    arguments: '--configuration $(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: dotnet test
+  inputs:
+    command: test
+    projects: '**/*Tests/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --collect "Code coverage" --no-build'
+
+- task: DotNetCoreCLI@2
+  displayName: dotnet pack
+  inputs:
+    command: pack
+    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-build'
+
 - task: PublishBuildArtifacts@1
   inputs:
     ArtifactName: drop
